@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\EgresoRequest;
 
 use App\Models\Subcategoria;
 use Illuminate\Contracts\Validation\Validator;

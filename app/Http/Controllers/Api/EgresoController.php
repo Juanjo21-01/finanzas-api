@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\EgresoIndexRequest;
-use App\Http\Requests\EgresoStoreRequest;
-use App\Http\Requests\EgresoUpdateRequest;
+use App\Http\Requests\EgresoRequest\EgresoIndexRequest;
+use App\Http\Requests\EgresoRequest\EgresoStoreRequest;
+use App\Http\Requests\EgresoRequest\EgresoUpdateRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

@@ -7,12 +7,16 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-
-    Route::middleware('auth:sanctum')->group(function (): void {
-        Route::post('logout', [AuthController::class, 'logout']);
-    });
+    Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    // RUTAS PARA MÓDULO DE EGRESOS
     Route::apiResource('egresos', EgresoController::class);
+
+    // RUTAS PARA MÓDULO DE INGRESOS
+
+    // RUTAS PARA MÓDULO DE CATEGORIAS
+
+    // RUTAS PARA DASHBOARD
 });
