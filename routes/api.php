@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EgresoController;
 use App\Http\Controllers\Api\IngresoController;
 use App\Http\Controllers\Api\SubcategoriaController;
@@ -28,4 +29,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->shallow();
 
     // RUTAS PARA DASHBOARD
+    Route::get('dashboard/resumen', [DashboardController::class, 'resumen']);
 });
