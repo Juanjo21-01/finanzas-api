@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\EgresoRequest\EgresoIndexRequest;
 use App\Http\Requests\EgresoRequest\EgresoStoreRequest;
 use App\Http\Requests\EgresoRequest\EgresoUpdateRequest;
+use App\Http\Resources\EgresoResource\EgresoCollection;
+use App\Http\Resources\EgresoResource\EgresoResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +16,7 @@ class EgresoController extends Controller
     /**
      * Display the authenticated user's expenses.
      */
-    public function index(EgresoIndexRequest $request): JsonResponse
+    public function index(EgresoIndexRequest $request): EgresoCollection
     {
         $filtros = $request->validated();
         $anio = isset($filtros['anio']) ? (int) $filtros['anio'] : null;
@@ -36,7 +38,7 @@ class EgresoController extends Controller
             ->orderByDesc('fecha')
             ->orderByDesc('id');
 
-        return response()->json($consulta->get());
+        return new EgresoCollection($consulta->get());
     }
 
     /**
@@ -47,32 +49,34 @@ class EgresoController extends Controller
         $egreso = $request->user()->egresos()->create($request->validated());
         $egreso->load(['categoria', 'subcategoria']);
 
-        return response()->json($egreso, 201);
+        return (new EgresoResource($egreso))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
      * Display one expense owned by the authenticated user.
      */
-    public function show(Request $request, string $egreso): JsonResponse
+    public function show(Request $request, string $egreso): EgresoResource
     {
         $registro = $request->user()
             ->egresos()
             ->with(['categoria', 'subcategoria'])
             ->findOrFail($egreso);
 
-        return response()->json($registro);
+        return new EgresoResource($registro);
     }
 
     /**
      * Update one expense owned by the authenticated user.
      */
-    public function update(EgresoUpdateRequest $request, string $egreso): JsonResponse
+    public function update(EgresoUpdateRequest $request, string $egreso): EgresoResource
     {
         $registro = $request->user()->egresos()->findOrFail($egreso);
         $registro->update($request->validated());
         $registro->load(['categoria', 'subcategoria']);
 
-        return response()->json($registro);
+        return new EgresoResource($registro);
     }
 
     /**
