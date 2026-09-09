@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardRequest\DashboardEgresosPorCategoriaRequest;
+use App\Http\Requests\DashboardRequest\DashboardResumenAnualRequest;
 use App\Http\Requests\DashboardRequest\DashboardResumenRequest;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -116,6 +117,62 @@ class DashboardController extends Controller
             ->values();
 
         return response()->json($egresos);
+    }
+
+    /**
+     * Return all twelve months with the authenticated user's yearly totals.
+     */
+    public function resumenAnual(DashboardResumenAnualRequest $request): JsonResponse
+    {
+        $anio = (int) $request->validated()['anio'];
+        $userId = (int) $request->user()->getAuthIdentifier();
+        $inicioAnio = CarbonImmutable::create($anio, 1, 1)->toDateString();
+        $finAnio = CarbonImmutable::create($anio + 1, 1, 1)->toDateString();
+        $driver = DB::connection()->getDriverName();
+        $mesSql = $driver === 'sqlite'
+            ? "CAST(strftime('%m', fecha) AS INTEGER)"
+            : 'MONTH(fecha)';
+
+        $ingresos = DB::table('ingresos')
+            ->selectRaw("$mesSql AS mes, monto, 'ingreso' AS tipo")
+            ->where('user_id', $userId)
+            ->where('fecha', '>=', $inicioAnio)
+            ->where('fecha', '<', $finAnio);
+
+        $egresos = DB::table('egresos')
+            ->selectRaw("$mesSql AS mes, monto, 'egreso' AS tipo")
+            ->where('user_id', $userId)
+            ->where('fecha', '>=', $inicioAnio)
+            ->where('fecha', '<', $finAnio);
+
+        $totales = DB::query()
+            ->fromSub($ingresos->unionAll($egresos), 'movimientos')
+            ->select('mes')
+            ->selectRaw(
+                <<<'SQL'
+                    COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE 0 END), 0) AS ingresos,
+                    COALESCE(SUM(CASE WHEN tipo = 'egreso' THEN monto ELSE 0 END), 0) AS egresos,
+                    COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE 0 END), 0)
+                        - COALESCE(SUM(CASE WHEN tipo = 'egreso' THEN monto ELSE 0 END), 0) AS balance
+                    SQL
+            )
+            ->groupBy('mes')
+            ->orderBy('mes')
+            ->get()
+            ->keyBy(fn ($total): int => (int) $total->mes);
+
+        $resumen = collect(range(1, 12))->map(function (int $mes) use ($totales): array {
+            $total = $totales->get($mes);
+
+            return [
+                'mes' => $mes,
+                'ingresos' => $this->decimal($total?->ingresos ?? '0'),
+                'egresos' => $this->decimal($total?->egresos ?? '0'),
+                'balance' => $this->decimal($total?->balance ?? '0'),
+            ];
+        });
+
+        return response()->json($resumen->values());
     }
 
     /**
