@@ -30,4 +30,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     // RUTAS PARA DASHBOARD
     Route::get('dashboard/resumen', [DashboardController::class, 'resumen']);
+    Route::get('dashboard/egresos-por-categoria', [DashboardController::class, 'egresosPorCategoria']);
 });
