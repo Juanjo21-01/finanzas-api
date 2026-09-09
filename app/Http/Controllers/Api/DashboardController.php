@@ -83,7 +83,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Return the authenticated user's expenses grouped by category for a month.
+     * Return the authenticated user's expenses grouped by category for a month. Endpoint 2
      */
     public function egresosPorCategoria(DashboardEgresosPorCategoriaRequest $request): JsonResponse
     {
