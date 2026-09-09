@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DashboardRequest\DashboardEgresosPorCategoriaRequest;
 use App\Http\Requests\DashboardRequest\DashboardResumenRequest;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -79,6 +80,42 @@ class DashboardController extends Controller
             'balance_acumulado' => $this->decimal($resumen->balance_acumulado),
             'porcentaje_gastado' => $this->decimal($resumen->porcentaje_gastado),
         ]);
+    }
+
+    /**
+     * Return the authenticated user's expenses grouped by category for a month.
+     */
+    public function egresosPorCategoria(DashboardEgresosPorCategoriaRequest $request): JsonResponse
+    {
+        $filtros = $request->validated();
+        $anio = (int) $filtros['anio'];
+        $mes = (int) $filtros['mes'];
+        $userId = (int) $request->user()->getAuthIdentifier();
+
+        $egresos = $request->user()
+            ->egresos()
+            ->join('categorias', 'categorias.id', '=', 'egresos.categoria_id')
+            ->where(function ($query) use ($userId): void {
+                $query->whereNull('categorias.user_id')
+                    ->orWhere('categorias.user_id', $userId);
+            })
+            ->delMes($anio, $mes)
+            ->select([
+                'egresos.categoria_id',
+                'categorias.nombre',
+            ])
+            ->selectRaw('SUM(egresos.monto) AS total')
+            ->groupBy('egresos.categoria_id', 'categorias.nombre')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($egreso): array => [
+                'categoria_id' => (int) $egreso->categoria_id,
+                'nombre' => $egreso->nombre,
+                'total' => $this->decimal($egreso->total),
+            ])
+            ->values();
+
+        return response()->json($egresos);
     }
 
     /**
